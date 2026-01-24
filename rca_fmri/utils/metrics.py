@@ -47,7 +47,8 @@ def icc11(subjects, values, alpha=0.05, r0=0, return_stats=True):
 
     Requires that there be an equal number of observations fer subject.
 
-    Converted from the matlab function https://www.mathworks.com/matlabcentral/fileexchange/22099-intraclass-correlation-coefficient-icc
+    Converted from the matlab function:
+    https://www.mathworks.com/matlabcentral/fileexchange/22099-intraclass-correlation-coefficient-icc
 
     """
     # Reformat from a 1D matrix of subjects and a 1D matrix of values to a 2D
