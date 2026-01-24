@@ -6,15 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "rca_fmri"
 dynamic = ["version"]
 authors = [
-  { name="Vighnesh Birodkar", email="vighneshbirodkar@nyu.edu" },
-  { name="Guillaume Lemaitre", email="g.lemaitre58@gmail.com" },
+  { name="Max Weissenbacher", email="max.weissenbacher@pm.me" },
 ]
-description = "A template for scikit-learn compatible packages."
+description = "Reliability component analysis"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
   "scikit-learn>=1.4.2",
-  "torch>=2.5",
+  "torch>=2.5; platform_system != \"Darwin\" or platform_machine == \"arm64\"",
   "tqdm==4.66.1",
   "spatiotemporal==1.0.1",
   "pingouin==0.5.3",
@@ -33,21 +32,24 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/scikit-learn-contrib/rca_fmri"
-Issues = "https://github.com/scikit-learn-contrib/rca_fmri/issues"
+Homepage = "https://github.com/maxweissenbacher/rca_fmri"
+Issues = "https://github.com/maxweissenbacher/rca_fmri/issues"
 
 [tool.setuptools_scm]
 version_file = "rca_fmri/_version.py"
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-# platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
-platforms = ["osx-arm64"]
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+# platforms = ["osx-arm64"]
 
 [tool.pixi.dependencies]
 python = "3.11.*"
 # scikit-learn = ">=1.4.2"
 pip = "*"
+
+[tool.pixi.target.osx-64.dependencies]
+pytorch = ">=2.5"
 
 [tool.pixi.feature.lint.tasks]
 black = { cmd = "black --check --diff rca_fmri && black --check --diff examples" }
@@ -61,7 +63,6 @@ rca_fmri = { path=".", editable=true }
 numpy = ">=2.0"
 scipy = "*"
 scikit-learn = ">=1.4.2"
-torch = ">=2.5"
 tqdm = "==4.66.1"
 spatiotemporal = "==1.0.1"
 pingouin = "==0.5.3"
