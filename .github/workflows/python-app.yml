@@ -16,10 +16,10 @@ jobs:
         environment: [test]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Ensure pixi dir exists
         run: mkdir -p .pixi
-      - uses: prefix-dev/setup-pixi@v0.8.1
+      - uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: v0.63.2
           environments: ${{ matrix.environment }}
