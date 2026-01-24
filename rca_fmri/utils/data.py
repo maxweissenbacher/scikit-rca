@@ -1,5 +1,5 @@
 from torch.utils.data import Dataset
-import torch.nn as nn
+
 
 class PairDataset(Dataset):
     def __init__(self, X, labels, device):

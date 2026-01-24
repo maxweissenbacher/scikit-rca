@@ -1,12 +1,11 @@
 import pickle
-import time
 
 import numpy as np
 import torch
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
+from sklearn.utils._tags import TargetTags
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_is_fitted, validate_data
-from sklearn.utils._tags import Tags, TargetTags
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -39,7 +38,8 @@ class RCA(TransformerMixin, BaseEstimator):
         Number of components to extract.
     n_features : int
         Number of input features.
-    model_type : {"linear", "linear_with_multicomponent", "nonlinear"}, default="linear"
+    model_type : {"linear", "linear_with_multicomponent", "nonlinear"},
+        default="linear"
         Model selection.
     eps : float, default=1.0
         Epsilon parameter for the contrastive loss.
@@ -137,7 +137,10 @@ class RCA(TransformerMixin, BaseEstimator):
             print(f"Fitting component {k+1}")
             if self.model_type == "linear":
                 weights, losses = self._fit_component(X_projected, labels)
-            elif self.model_type == "nonlinear" or self.model_type == "linear_with_multicomponent":
+            elif (
+                self.model_type == "nonlinear"
+                or self.model_type == "linear_with_multicomponent"
+            ):
                 if k == 0:
                     weights, losses = self._fit_component(X_projected, labels)
                 else:
@@ -166,7 +169,10 @@ class RCA(TransformerMixin, BaseEstimator):
         for i in range(0, len(weights)):
             if self.model_type == "linear":
                 embeddings.append((X_projected @ weights[i][:, None])[:, 0])
-            elif self.model_type == "nonlinear" or self.model_type == "linear_with_multicomponent":
+            elif (
+                self.model_type == "nonlinear"
+                or self.model_type == "linear_with_multicomponent"
+            ):
                 curr_embed = weights[i](torch.from_numpy(X_projected)).detach().numpy()
                 embeddings = curr_embed.T
         embeddings = np.asarray(embeddings).T
@@ -215,18 +221,18 @@ class RCA(TransformerMixin, BaseEstimator):
             )
         else:
             raise ValueError("Model type not recognised, using linear model")
-        optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5)
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
         losses = []
 
         # Training loop
-        start_time = time.time()
         pbar = tqdm(range(self.n_epochs))
         for _ in pbar:
             avg_loss = []  # average loss across batches
             avg_gn = []  # average gradient norm across batches
             # Iterate over all data to update parameters
-            for (batch_idx, data_X, data_labels) in dataloader:
+            for batch_idx, data_X, data_labels in dataloader:
                 output = model.forward(data_X)
                 if self.loss_type == "contrastive":
                     loss = contrastive_loss(output, data_labels, self.eps)
@@ -235,10 +241,16 @@ class RCA(TransformerMixin, BaseEstimator):
                 if self.orthogonality_penalty == "weights":
                     w_current = model.weight.view(-1)  # shape: (num_features,)
                     for w_prev in self.weights_:
-                        penalty_scale = 10 if self.penalty_scale is None else self.penalty_scale
-                        w_prev = torch.tensor(w_prev).view(-1).to(w_current.device)  # shape: (num_features,)
+                        penalty_scale = (
+                            10 if self.penalty_scale is None else self.penalty_scale
+                        )
+                        w_prev = (
+                            torch.tensor(w_prev).view(-1).to(w_current.device)
+                        )  # shape: (num_features,)
                         if self.orthogonality_by_correlation:
-                            dot = torch.dot(w_current - w_current.mean(), w_prev - w_prev.mean())
+                            dot = torch.dot(
+                                w_current - w_current.mean(), w_prev - w_prev.mean()
+                            )
                         else:
                             dot = torch.dot(w_current, w_prev)
                         loss += 10 * torch.pow(dot, 2)
@@ -254,11 +266,15 @@ class RCA(TransformerMixin, BaseEstimator):
                             w_prev_np,
                             device=z_curr.device,
                             dtype=z_curr.dtype,
-                        ).view(-1)  # (n_features,)
+                        ).view(
+                            -1
+                        )  # (n_features,)
 
                         z_prev = data_X @ w_prev  # (batch,)
                         if self.orthogonality_by_correlation:
-                            dot = torch.dot(z_curr - z_curr.mean(), z_prev - z_prev.mean())
+                            dot = torch.dot(
+                                z_curr - z_curr.mean(), z_prev - z_prev.mean()
+                            )
                         else:
                             dot = torch.dot(z_curr, z_prev)
                             penalty_scale /= 10
@@ -274,14 +290,13 @@ class RCA(TransformerMixin, BaseEstimator):
             description = (
                 f"Loss {np.array(avg_loss).mean():.2f} | "
                 f"grad norm {np.array(avg_gn).mean():.2f} | "
-                f'learning rate {optimizer.param_groups[0]["lr"]:.9f}'
+                f"learning rate {optimizer.param_groups[0]['lr']:.9f}"
             )
             pbar.set_description(description)
 
             # Logging
             losses.append(np.array(avg_loss).mean())
 
-        end_time = time.time()
         if self.model_type == "linear":
             matrix = model.weight.detach().cpu().numpy()
             return matrix, losses
@@ -292,11 +307,16 @@ class RCA(TransformerMixin, BaseEstimator):
             w = weights.reshape(1, -1)  # ensure shape (1, n_features)
             w_norm_sq = w @ w.T  # shape: (1, 1)
             # Project X onto w
-            projection_vectors = ((X @ w.T) / w_norm_sq) @ w  # shape: (n_samples, n_features)
+            projection_vectors = (
+                (X @ w.T) / w_norm_sq
+            ) @ w  # shape: (n_samples, n_features)
             # Subtract projections
             X_residual = X - projection_vectors
             return X_residual
-        print("For the multicomponent linear or nonlinear model we don't remove embeddings!")
+        print(
+            "For the multicomponent linear or nonlinear model we don't remove"
+            " embeddings!"
+        )
         return X  # Return original X unchanged
 
     def save(self, filename):
@@ -315,7 +335,9 @@ class RCA(TransformerMixin, BaseEstimator):
         if not X.ndim == 2:
             raise ValueError(f"Input X must be of shape [num_scans, d]. Got {X.shape}")
         if not labels.ndim == 2 or not labels.shape[1] == 2:
-            raise ValueError(f"Input labels must be of shape [num_scans, 2]. Got {labels.shape}")
+            raise ValueError(
+                f"Input labels must be of shape [num_scans, 2]. Got {labels.shape}"
+            )
         if not X.shape[0] == labels.shape[0]:
             raise ValueError(
                 "Input X, labels must have matching first dimensions. "
