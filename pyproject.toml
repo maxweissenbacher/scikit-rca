@@ -38,7 +38,7 @@ Issues = "https://github.com/maxweissenbacher/rca_fmri/issues"
 [tool.setuptools_scm]
 version_file = "rca_fmri/_version.py"
 
-[tool.pixi.workspace]
+[tool.pixi.project]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 # platforms = ["osx-arm64"]

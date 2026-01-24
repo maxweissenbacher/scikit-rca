@@ -5181,8 +5181,8 @@ packages:
   requires_python: '>=3.8'
 - pypi: ./
   name: rca-fmri
-  version: 0.1.dev6+gfb291cc62.d20260124
-  sha256: 6543cd3fdd32a5859198baf317bd200fdaa79331a00a8fdf3517bd1dbb44f8eb
+  version: 0.1.dev7+g813e9ced4.d20260124
+  sha256: 9c5fe449311f6b29316529151db95690240a7127d66ee499774d760a21a77062
   requires_dist:
   - scikit-learn>=1.4.2
   - torch>=2.5 ; sys_platform != 'darwin' or platform_machine == 'arm64'

@@ -21,16 +21,10 @@ jobs:
         run: mkdir -p .pixi
       - uses: prefix-dev/setup-pixi@v0.8.1
         with:
-          pixi-version: v0.23.0
+          pixi-version: v0.63.2
           environments: ${{ matrix.environment }}
           frozen: true
           cache: false
 
       - name: Run tests
         run: pixi run -e ${{ matrix.environment }} test
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.6.0
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: scikit-learn-contrib/rca_fmri
