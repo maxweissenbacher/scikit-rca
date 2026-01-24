@@ -1,0 +1,345 @@
+import pickle
+import time
+
+import numpy as np
+import torch
+from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
+from sklearn.utils.multiclass import type_of_target
+from sklearn.utils.validation import check_is_fitted, validate_data
+from sklearn.utils._tags import Tags, TargetTags
+from torch import nn
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+from rca_fmri.utils.data import PairDataset
+from rca_fmri.utils.metrics import contrastive_loss, icc11, info_nce
+
+
+class RCA(TransformerMixin, BaseEstimator):
+    """Reliable Component Analysis transformer.
+
+    Linear: Starting with the feature matrix Z^0 of size [num_samples,
+    num_features], we fit a matrix W^0 of size [num_features, 1], giving a
+    Y^0 = Z^0 W^0 of size [N,1]. Then we project each row of Z^0 onto W^0,
+    and subtract this projection from Z^0, giving a new feature matrix Z^1 of
+    size [num_samples, num_features]. We repeat this process until we have
+    extracted n_components components Y^0,...,Y^{n_components-1} of size
+    [num_samples, 1].
+
+    Nonlinear: Use a neural network to project the data onto a lower-dimensional
+    space. The network is trained to minimize the contrastive loss between pairs
+    of samples that belong to the same subject, and pairs that belong to
+    different subjects. The output of the network is then used as the embedding
+    for each sample. The output of the network is Y of size
+    [num_samples, n_components].
+
+    Parameters
+    ----------
+    n_components : int
+        Number of components to extract.
+    n_features : int
+        Number of input features.
+    model_type : {"linear", "linear_with_multicomponent", "nonlinear"}, default="linear"
+        Model selection.
+    eps : float, default=1.0
+        Epsilon parameter for the contrastive loss.
+    lr : float, default=1e-4
+        Learning rate for the optimizer.
+    n_epochs : int, default=10
+        Number of training epochs.
+    batch_size : int, default=10
+        Batch size for training.
+    weight_decay : float, default=1e-8
+        Weight decay parameter for the optimizer.
+    device : str, default="cpu"
+        Torch device string.
+    large_epsilon : bool, default=False
+        Flag for epsilon scaling.
+    loss_type : {"contrastive", "info_nce"}, default="contrastive"
+        Loss function type.
+    orthogonality_penalty : {"participants", "weights"}, default="participants"
+        Orthogonality penalty type.
+    orthogonality_by_correlation : bool, default=True
+        Use correlation instead of dot product for orthogonality.
+    penalty_scale : float or None, default=None
+        Multiplier for orthogonality penalty.
+    """
+
+    _parameter_constraints = {}
+
+    def __init__(
+        self,
+        n_components=1,
+        n_features=None,
+        model_type="linear",
+        eps=1.0,
+        lr=1e-4,
+        n_epochs=10,
+        batch_size=10,
+        weight_decay=1e-8,
+        device="cpu",
+        large_epsilon=False,
+        loss_type="contrastive",
+        random_state=None,
+        orthogonality_penalty="participants",
+        orthogonality_by_correlation=True,
+        penalty_scale=None,
+    ):
+        self.n_components = n_components
+        self.device = device
+        self.model_type = model_type
+        self.loss_type = loss_type
+        self.random_state = random_state
+        self.n_features = n_features
+        self.weight_decay = weight_decay
+        self.batch_size = batch_size
+        self.n_epochs = n_epochs
+        self.lr = lr
+        self.eps = eps
+        self.large_epsilon = large_epsilon
+        self.orthogonality_penalty = orthogonality_penalty
+        self.orthogonality_by_correlation = orthogonality_by_correlation
+        self.penalty_scale = penalty_scale
+
+    def __sklearn_tags__(self):
+        tags = super().__sklearn_tags__()
+        tags.target_tags = TargetTags(required=True)
+        return tags
+
+    @_fit_context(prefer_skip_nested_validation=True)
+    def fit(self, X, y=None):
+        """
+        X: shape [num_samples, d]
+        y: Identifies pairs of indices of which samples belong to the same
+           subject. Shape [num_samples, 2]. Each entry must be an int between
+           0 and labels.shape[0]-1
+        """
+        X = validate_data(self, X, accept_sparse=False)
+        self._output_dtype_ = X.dtype
+        n_features = X.shape[1]
+        if self.n_features is not None and self.n_features != n_features:
+            raise ValueError(
+                "n_features must match X.shape[1]. "
+                f"Got n_features={self.n_features}, X.shape[1]={X.shape[1]}"
+            )
+        self.n_features_ = n_features
+        labels = self._coerce_labels(X, y)
+        self.losses_ = []
+        self.weights_ = []  # in the linear case each weight has shape [1, num_features]
+        X = X.astype("float32")
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
+            torch.manual_seed(self.random_state)
+        self._check_dimensions(X, labels)
+        X, labels = self._convert_to_torch(X, labels)
+        X_projected = X
+        for k in range(0, self.n_components):
+            print(f"Fitting component {k+1}")
+            if self.model_type == "linear":
+                weights, losses = self._fit_component(X_projected, labels)
+            elif self.model_type == "nonlinear" or self.model_type == "linear_with_multicomponent":
+                if k == 0:
+                    weights, losses = self._fit_component(X_projected, labels)
+                else:
+                    break
+            self.losses_.append(losses)
+            self.weights_.append(weights)
+        self.losses_ = np.asarray(self.losses_)
+        if isinstance(self.weights_[-1], np.ndarray):
+            weights = np.asarray(self.weights_)
+            if weights.ndim == 3 and weights.shape[1] == 1:
+                weights = weights.squeeze(1)
+            self.weights_ = weights
+        self.is_fitted_ = True
+        return self
+
+    def transform(self, X):
+        check_is_fitted(self, ["weights_"])
+        X = validate_data(self, X, accept_sparse=False, reset=False)
+        embeddings = []
+        output_dtype = X.dtype
+        X_projected = X.astype("float32")
+        if isinstance(self.weights_, np.ndarray) and self.weights_.ndim == 1:
+            weights = self.weights_[None, :]
+        else:
+            weights = self.weights_
+        for i in range(0, len(weights)):
+            if self.model_type == "linear":
+                embeddings.append((X_projected @ weights[i][:, None])[:, 0])
+            elif self.model_type == "nonlinear" or self.model_type == "linear_with_multicomponent":
+                curr_embed = weights[i](torch.from_numpy(X_projected)).detach().numpy()
+                embeddings = curr_embed.T
+        embeddings = np.asarray(embeddings).T
+        print(embeddings.shape)
+        if len(embeddings.shape) < 2:
+            embeddings = np.expand_dims(embeddings, axis=-1)
+        return embeddings.astype(output_dtype, copy=False)
+
+    def score(self, X, y=None, dim=0):
+        check_is_fitted(self, ["weights_"])
+        labels = self._coerce_labels(X, y)
+        embedding = self.transform(X)[:, dim]
+        return icc11(labels[:, 0], embedding, return_stats=False)
+
+    def orthogonality_check(self):
+        for i in range(1, len(self.weights_)):
+            for j in range(0, i):
+                if self.model_type == "linear":
+                    print(
+                        "Orthogonality between component "
+                        f"{i} and {j}: {np.abs(self.weights_[i] @ self.weights_[j].T)}"
+                    )
+
+    def _fit_component(self, X, labels):
+        # Create data loader for training
+        dataset = PairDataset(X, labels, device=self.device)
+        generator = None
+        if self.random_state is not None:
+            generator = torch.Generator()
+            generator.manual_seed(self.random_state)
+        dataloader = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            generator=generator,
+        )
+        if self.model_type == "linear":
+            model = nn.Linear(self.n_features_, 1, bias=False)
+        elif self.model_type == "linear_with_multicomponent":
+            model = nn.Linear(self.n_features_, self.n_components, bias=False)
+        elif self.model_type == "nonlinear":
+            model = nn.Sequential(
+                nn.Linear(self.n_features_, 10),
+                nn.ReLU(),
+                nn.Linear(10, self.n_components, bias=False),
+            )
+        else:
+            raise ValueError("Model type not recognised, using linear model")
+        optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5)
+        losses = []
+
+        # Training loop
+        start_time = time.time()
+        pbar = tqdm(range(self.n_epochs))
+        for _ in pbar:
+            avg_loss = []  # average loss across batches
+            avg_gn = []  # average gradient norm across batches
+            # Iterate over all data to update parameters
+            for (batch_idx, data_X, data_labels) in dataloader:
+                output = model.forward(data_X)
+                if self.loss_type == "contrastive":
+                    loss = contrastive_loss(output, data_labels, self.eps)
+                elif self.loss_type == "info_nce":
+                    loss = info_nce(output, data_labels)
+                if self.orthogonality_penalty == "weights":
+                    w_current = model.weight.view(-1)  # shape: (num_features,)
+                    for w_prev in self.weights_:
+                        penalty_scale = 10 if self.penalty_scale is None else self.penalty_scale
+                        w_prev = torch.tensor(w_prev).view(-1).to(w_current.device)  # shape: (num_features,)
+                        if self.orthogonality_by_correlation:
+                            dot = torch.dot(w_current - w_current.mean(), w_prev - w_prev.mean())
+                        else:
+                            dot = torch.dot(w_current, w_prev)
+                        loss += 10 * torch.pow(dot, 2)
+                elif self.orthogonality_penalty == "participants":
+                    z_curr = output.view(-1)  # (batch,)
+                    penalty_scale = (
+                        (0.1 if self.penalty_scale is None else self.penalty_scale)
+                        / z_curr.size(0)
+                        / (len(self.weights_) + 1)
+                    )
+                    for w_prev_np in self.weights_:  # loop over old comps
+                        w_prev = torch.as_tensor(
+                            w_prev_np,
+                            device=z_curr.device,
+                            dtype=z_curr.dtype,
+                        ).view(-1)  # (n_features,)
+
+                        z_prev = data_X @ w_prev  # (batch,)
+                        if self.orthogonality_by_correlation:
+                            dot = torch.dot(z_curr - z_curr.mean(), z_prev - z_prev.mean())
+                        else:
+                            dot = torch.dot(z_curr, z_prev)
+                            penalty_scale /= 10
+                        loss += penalty_scale * dot.pow(2)
+                optimizer.zero_grad()
+                loss.backward()
+                gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 100.0)
+                optimizer.step()
+                # Remember loss and gradient norm per batch
+                avg_loss.append(loss.detach().item())
+                avg_gn.append(gn.detach().item())
+
+            description = (
+                f"Loss {np.array(avg_loss).mean():.2f} | "
+                f"grad norm {np.array(avg_gn).mean():.2f} | "
+                f'learning rate {optimizer.param_groups[0]["lr"]:.9f}'
+            )
+            pbar.set_description(description)
+
+            # Logging
+            losses.append(np.array(avg_loss).mean())
+
+        end_time = time.time()
+        if self.model_type == "linear":
+            matrix = model.weight.detach().cpu().numpy()
+            return matrix, losses
+        return model, losses
+
+    def _remove_embeddings(self, X, weights):
+        if self.model_type == "linear":
+            w = weights.reshape(1, -1)  # ensure shape (1, n_features)
+            w_norm_sq = w @ w.T  # shape: (1, 1)
+            # Project X onto w
+            projection_vectors = ((X @ w.T) / w_norm_sq) @ w  # shape: (n_samples, n_features)
+            # Subtract projections
+            X_residual = X - projection_vectors
+            return X_residual
+        print("For the multicomponent linear or nonlinear model we don't remove embeddings!")
+        return X  # Return original X unchanged
+
+    def save(self, filename):
+        with open(filename, "wb") as f:
+            pickle.dump(self, f)
+        return True
+
+    @staticmethod
+    def load(filename):
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+
+    @staticmethod
+    def _check_dimensions(X, labels):
+        labels = np.asarray(labels)
+        if not X.ndim == 2:
+            raise ValueError(f"Input X must be of shape [num_scans, d]. Got {X.shape}")
+        if not labels.ndim == 2 or not labels.shape[1] == 2:
+            raise ValueError(f"Input labels must be of shape [num_scans, 2]. Got {labels.shape}")
+        if not X.shape[0] == labels.shape[0]:
+            raise ValueError(
+                "Input X, labels must have matching first dimensions. "
+                f"Got X.shape={X.shape}, labels.shape={labels.shape}"
+            )
+
+    @staticmethod
+    def _convert_to_torch(X, labels):
+        return torch.from_numpy(X), torch.from_numpy(labels)
+
+    @staticmethod
+    def _coerce_labels(X, labels):
+        if labels is None:
+            raise ValueError("requires y to be passed, but the target y is None")
+        labels_arr = np.asarray(labels)
+        if labels_arr.dtype == object:
+            target_type = type_of_target(labels_arr)
+            if target_type == "unknown":
+                raise ValueError("Unknown label type: object")
+        if labels_arr.ndim == 1:
+            if labels_arr.shape[0] != X.shape[0]:
+                raise ValueError(
+                    "Input X, labels must have matching first dimensions. "
+                    f"Got X.shape={X.shape}, labels.shape={labels_arr.shape}"
+                )
+            labels_arr = np.column_stack((labels_arr, np.arange(labels_arr.shape[0])))
+        return labels_arr

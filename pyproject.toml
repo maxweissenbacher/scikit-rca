@@ -14,6 +14,10 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
   "scikit-learn>=1.4.2",
+  "torch>=2.5",
+  "tqdm==4.66.1",
+  "spatiotemporal==1.0.1",
+  "pingouin==0.5.3",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -35,44 +39,54 @@ Issues = "https://github.com/scikit-learn-contrib/rca_fmri/issues"
 [tool.setuptools_scm]
 version_file = "rca_fmri/_version.py"
 
-[tool.pixi.project]
+[tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+# platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+platforms = ["osx-arm64"]
 
 [tool.pixi.dependencies]
-python = ">=3.9"
-scikit-learn = ">=1.4.2"
-
-[tool.pixi.pypi-dependencies]
-rca_fmri = { path=".", editable=true }
-
-[tool.pixi.feature.lint.dependencies]
-# The version below should be aligned with the one of `.pre-commit-config.yaml`
-black = "23.3.0"
-pre-commit = "3.7.1"
-ruff = "0.4.2"
+python = "3.11.*"
+# scikit-learn = ">=1.4.2"
+pip = "*"
 
 [tool.pixi.feature.lint.tasks]
 black = { cmd = "black --check --diff rca_fmri && black --check --diff examples" }
 ruff = { cmd = "ruff check --output-format=full rca_fmri && ruff check --output-format=full examples" }
-lint = { depends_on = ["black", "ruff"]}
+lint = { depends-on = ["black", "ruff"]}
 
-[tool.pixi.feature.test.dependencies]
+[tool.pixi.pypi-dependencies]
+rca_fmri = { path=".", editable=true }
+
+# Scientific stack (PyPI wheels)
+numpy = ">=2.0"
+scipy = "*"
+scikit-learn = ">=1.4.2"
+torch = ">=2.5"
+tqdm = "==4.66.1"
+spatiotemporal = "==1.0.1"
+pingouin = "==0.5.3"
+
+# Test
 pytest = "*"
 pytest-cov = "*"
 
-[tool.pixi.feature.test.tasks]
-test = { cmd = "pytest -vsl --cov=rca_fmri --cov-report=xml rca_fmri" }
+# Lint (pin explicitly to silence warnings)
+black = "==23.3.0"
+pre-commit = "==3.7.1"
+ruff = "==0.4.2"
 
-[tool.pixi.feature.doc.dependencies]
+# Docs
 matplotlib = "*"
 numpydoc = "*"
 pydata-sphinx-theme = "*"
-setuptools-scm = ">=8"  # needed for the versioning
+setuptools-scm = ">=8"
 sphinx = "*"
 sphinx-design = "*"
 sphinx-gallery = "*"
 sphinx-prompt = "*"
+
+[tool.pixi.feature.test.tasks]
+test = { cmd = "pytest -vsl --cov=rca_fmri --cov-report=xml rca_fmri" }
 
 [tool.pixi.feature.doc.tasks]
 build-doc = { cmd = "make html", cwd = "doc" }
