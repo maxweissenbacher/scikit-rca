@@ -82,9 +82,9 @@ sns.set_theme(style="darkgrid")
 )
 def main(data_dir, lr, epochs, n_components, batch, loss, penalty_scale, weight_decay, out_dir, plots):
     # Load data
-    features_path, labels_path = data_dir / "std.npy", data_dir / "labels.npy"
-    assert features_path.exists() and labels_path.exists()
-    f"Data directory ({data_dir.as_posix()}) must contain"
+    features_path, labels_path = data_dir / "features.npy", data_dir / "labels.npy"
+    if not (features_path.exists() and labels_path.exists()):
+        raise RuntimeError(f"Data directory ({data_dir.as_posix()}) must contain features.npy and labels.npy")
     X = np.load(features_path).squeeze()
     X = (X - np.mean(X)) / np.std(X)
     labels = np.load(labels_path)

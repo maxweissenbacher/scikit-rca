@@ -1,5 +1,3 @@
-from collections import Counter
-
 import numpy as np
 import scipy.stats
 import torch

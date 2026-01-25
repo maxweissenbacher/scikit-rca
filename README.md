@@ -18,16 +18,25 @@ pip install scikit-rca
 
 ## Usage
 
-Example usage is demonstrated in `examples/run_rca.py`. After installing, the script can be run from any environment that contains the installed package. A good starting point is calling
+Example usage is demonstrated in `examples/run_rca.py`. To use this example, clone the git repo and start by running 
 
 ```bash
 python examples/run_rca.py --help
 ```
 
+T
 The following shows some example usage of the script:
 
 ```bash
-python examples/run_rca.py --data-dir /path/to/my/data --lr 0.005 --epochs 200 --dim 5 --out-dir /path/to/store/model --penalty-scale 0.1 --batch-size 4000 --weight-decay 0.001
+python examples/run_rca.py \
+    --data-dir /path/to/my/data \
+    --lr 0.005 \
+    --epochs 200 \
+    --dim 5 \
+    --penalty-scale 0.1 \
+    --batch-size 4000 \
+    --weight-decay 0.001 \
+    --out-dir /path/to/store/model
 ```
 
 ## Authors
