@@ -1,6 +1,6 @@
 """
 ===================================
-Plotting Reliable Component Analysis
+Plotting Reliability Component Analysis
 ===================================
 
 Example usage of the RCA class.

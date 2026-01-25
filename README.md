@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/maxweissenbacher/scikit-rca/actions/workflows/python-app.yml/badge.svg)](https://github.com/maxweissenbacher/scikit-rca/actions/workflows/python-app.yml)
 
-Implementation of Reliability Component Analysis (RCA) from the paper 
+Implementation of Reliability Component Analysis (RCA) from the paper
 
 (citation pending).
 

@@ -15,7 +15,7 @@ from scikit_rca.utils.metrics import contrastive_loss, icc11, info_nce
 
 
 class RCA(TransformerMixin, BaseEstimator):
-    """Reliable Component Analysis transformer.
+    """Reliability Component Analysis transformer.
 
     Linear: Starting with the feature matrix Z^0 of size [num_samples,
     num_features], we fit a matrix W^0 of size [num_features, 1], giving a

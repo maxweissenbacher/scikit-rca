@@ -6125,8 +6125,8 @@ packages:
   requires_python: '>=3.11'
 - pypi: ./
   name: scikit-rca
-  version: 0.0.1.post1.dev0
-  sha256: 371671ff00c6cbf0565d35283f07f82f57d6ae7d24c2ef8e36c52da24e4ff910
+  version: 0.0.1.post1.dev1
+  sha256: 3acd45fe0a3516c60614e928ec760d4f4050abefc65eec21eb41c917c6cae05d
   requires_dist:
   - scikit-learn>=1.4.2
   - torch>=2.5 ; sys_platform != 'darwin' or platform_machine == 'arm64'
