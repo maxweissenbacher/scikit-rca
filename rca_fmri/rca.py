@@ -36,8 +36,6 @@ class RCA(TransformerMixin, BaseEstimator):
     ----------
     n_components : int
         Number of components to extract.
-    n_features : int
-        Number of input features.
     model_type : {"linear", "linear_with_multicomponent", "nonlinear"},
         default="linear"
         Model selection.
@@ -53,10 +51,10 @@ class RCA(TransformerMixin, BaseEstimator):
         Weight decay parameter for the optimizer.
     device : str, default="cpu"
         Torch device string.
-    large_epsilon : bool, default=False
-        Flag for epsilon scaling.
     loss_type : {"contrastive", "info_nce"}, default="contrastive"
         Loss function type.
+    verbose : bool, default=False
+        Whether to print progress messages during fitting.
     orthogonality_penalty : {"participants", "weights"}, default="participants"
         Orthogonality penalty type.
     orthogonality_by_correlation : bool, default=True
@@ -70,7 +68,6 @@ class RCA(TransformerMixin, BaseEstimator):
     def __init__(
         self,
         n_components=1,
-        n_features=None,
         model_type="linear",
         eps=1.0,
         lr=1e-4,
@@ -78,9 +75,9 @@ class RCA(TransformerMixin, BaseEstimator):
         batch_size=10,
         weight_decay=1e-8,
         device="cpu",
-        large_epsilon=False,
         loss_type="contrastive",
         random_state=None,
+        verbose=False,
         orthogonality_penalty="participants",
         orthogonality_by_correlation=True,
         penalty_scale=None,
@@ -90,13 +87,12 @@ class RCA(TransformerMixin, BaseEstimator):
         self.model_type = model_type
         self.loss_type = loss_type
         self.random_state = random_state
-        self.n_features = n_features
+        self.verbose = verbose
         self.weight_decay = weight_decay
         self.batch_size = batch_size
         self.n_epochs = n_epochs
         self.lr = lr
         self.eps = eps
-        self.large_epsilon = large_epsilon
         self.orthogonality_penalty = orthogonality_penalty
         self.orthogonality_by_correlation = orthogonality_by_correlation
         self.penalty_scale = penalty_scale
@@ -115,14 +111,7 @@ class RCA(TransformerMixin, BaseEstimator):
            0 and labels.shape[0]-1
         """
         X = validate_data(self, X, accept_sparse=False)
-        self._output_dtype_ = X.dtype
-        n_features = X.shape[1]
-        if self.n_features is not None and self.n_features != n_features:
-            raise ValueError(
-                "n_features must match X.shape[1]. "
-                f"Got n_features={self.n_features}, X.shape[1]={X.shape[1]}"
-            )
-        self.n_features_ = n_features
+        self.n_features_ = X.shape[1]
         labels = self._coerce_labels(X, y)
         self.losses_ = []
         self.weights_ = []  # in the linear case each weight has shape [1, num_features]
@@ -132,17 +121,14 @@ class RCA(TransformerMixin, BaseEstimator):
             torch.manual_seed(self.random_state)
         self._check_dimensions(X, labels)
         X, labels = self._convert_to_torch(X, labels)
-        X_projected = X
         for k in range(0, self.n_components):
-            print(f"Fitting component {k+1}")
+            if self.verbose:
+                print(f"Fitting component {k+1}")
             if self.model_type == "linear":
-                weights, losses = self._fit_component(X_projected, labels)
-            elif (
-                self.model_type == "nonlinear"
-                or self.model_type == "linear_with_multicomponent"
-            ):
+                weights, losses = self._fit_component(X, labels)
+            elif self.model_type == "nonlinear" or self.model_type == "linear_with_multicomponent":
                 if k == 0:
-                    weights, losses = self._fit_component(X_projected, labels)
+                    weights, losses = self._fit_component(X, labels)
                 else:
                     break
             self.losses_.append(losses)
@@ -161,22 +147,19 @@ class RCA(TransformerMixin, BaseEstimator):
         X = validate_data(self, X, accept_sparse=False, reset=False)
         embeddings = []
         output_dtype = X.dtype
-        X_projected = X.astype("float32")
+        X_float = X.astype("float32")
         if isinstance(self.weights_, np.ndarray) and self.weights_.ndim == 1:
             weights = self.weights_[None, :]
         else:
             weights = self.weights_
         for i in range(0, len(weights)):
             if self.model_type == "linear":
-                embeddings.append((X_projected @ weights[i][:, None])[:, 0])
-            elif (
-                self.model_type == "nonlinear"
-                or self.model_type == "linear_with_multicomponent"
-            ):
-                curr_embed = weights[i](torch.from_numpy(X_projected)).detach().numpy()
+                embeddings.append((X_float @ weights[i][:, None])[:, 0])
+            elif self.model_type == "nonlinear" or self.model_type == "linear_with_multicomponent":
+                # Nonlinear/multicomponent uses a single model to produce all components.
+                curr_embed = weights[i](torch.from_numpy(X_float)).detach().numpy()
                 embeddings = curr_embed.T
         embeddings = np.asarray(embeddings).T
-        print(embeddings.shape)
         if len(embeddings.shape) < 2:
             embeddings = np.expand_dims(embeddings, axis=-1)
         return embeddings.astype(output_dtype, copy=False)
@@ -191,10 +174,11 @@ class RCA(TransformerMixin, BaseEstimator):
         for i in range(1, len(self.weights_)):
             for j in range(0, i):
                 if self.model_type == "linear":
-                    print(
-                        "Orthogonality between component "
-                        f"{i} and {j}: {np.abs(self.weights_[i] @ self.weights_[j].T)}"
-                    )
+                    if self.verbose:
+                        print(
+                            "Orthogonality between component "
+                            f"{i} and {j}: {np.abs(self.weights_[i] @ self.weights_[j].T)}"
+                        )
 
     def _fit_component(self, X, labels):
         # Create data loader for training
@@ -221,9 +205,7 @@ class RCA(TransformerMixin, BaseEstimator):
             )
         else:
             raise ValueError("Model type not recognised, using linear model")
-        optimizer = torch.optim.AdamW(
-            model.parameters(), lr=self.lr, weight_decay=self.weight_decay
-        )
+        optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         losses = []
 
         # Training loop
@@ -238,47 +220,7 @@ class RCA(TransformerMixin, BaseEstimator):
                     loss = contrastive_loss(output, data_labels, self.eps)
                 elif self.loss_type == "info_nce":
                     loss = info_nce(output, data_labels)
-                if self.orthogonality_penalty == "weights":
-                    w_current = model.weight.view(-1)  # shape: (num_features,)
-                    for w_prev in self.weights_:
-                        penalty_scale = (
-                            10 if self.penalty_scale is None else self.penalty_scale
-                        )
-                        w_prev = (
-                            torch.tensor(w_prev).view(-1).to(w_current.device)
-                        )  # shape: (num_features,)
-                        if self.orthogonality_by_correlation:
-                            dot = torch.dot(
-                                w_current - w_current.mean(), w_prev - w_prev.mean()
-                            )
-                        else:
-                            dot = torch.dot(w_current, w_prev)
-                        loss += 10 * torch.pow(dot, 2)
-                elif self.orthogonality_penalty == "participants":
-                    z_curr = output.view(-1)  # (batch,)
-                    penalty_scale = (
-                        (0.1 if self.penalty_scale is None else self.penalty_scale)
-                        / z_curr.size(0)
-                        / (len(self.weights_) + 1)
-                    )
-                    for w_prev_np in self.weights_:  # loop over old comps
-                        w_prev = torch.as_tensor(
-                            w_prev_np,
-                            device=z_curr.device,
-                            dtype=z_curr.dtype,
-                        ).view(
-                            -1
-                        )  # (n_features,)
-
-                        z_prev = data_X @ w_prev  # (batch,)
-                        if self.orthogonality_by_correlation:
-                            dot = torch.dot(
-                                z_curr - z_curr.mean(), z_prev - z_prev.mean()
-                            )
-                        else:
-                            dot = torch.dot(z_curr, z_prev)
-                            penalty_scale /= 10
-                        loss += penalty_scale * dot.pow(2)
+                loss += self._orthogonality_penalty_loss(output, data_X, model)
                 optimizer.zero_grad()
                 loss.backward()
                 gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 100.0)
@@ -288,9 +230,9 @@ class RCA(TransformerMixin, BaseEstimator):
                 avg_gn.append(gn.detach().item())
 
             description = (
-                f"Loss {np.array(avg_loss).mean():.2f} | "
-                f"grad norm {np.array(avg_gn).mean():.2f} | "
-                f"learning rate {optimizer.param_groups[0]['lr']:.9f}"
+                f"Loss={np.array(avg_loss).mean():.5f} | "
+                f"grad_norm={np.array(avg_gn).mean():.2f} | "
+                f"lr={optimizer.param_groups[0]['lr']:.1e}"
             )
             pbar.set_description(description)
 
@@ -302,22 +244,53 @@ class RCA(TransformerMixin, BaseEstimator):
             return matrix, losses
         return model, losses
 
-    def _remove_embeddings(self, X, weights):
-        if self.model_type == "linear":
-            w = weights.reshape(1, -1)  # ensure shape (1, n_features)
-            w_norm_sq = w @ w.T  # shape: (1, 1)
-            # Project X onto w
-            projection_vectors = (
-                (X @ w.T) / w_norm_sq
-            ) @ w  # shape: (n_samples, n_features)
-            # Subtract projections
-            X_residual = X - projection_vectors
-            return X_residual
-        print(
-            "For the multicomponent linear or nonlinear model we don't remove"
-            " embeddings!"
-        )
-        return X  # Return original X unchanged
+    def _weight_penalty_scale(self):
+        """Return the penalty scale for weight orthogonality."""
+        return 10 if self.penalty_scale is None else self.penalty_scale
+
+    def _participant_penalty_scale(self, z_curr):
+        """Return the penalty scale for participant orthogonality."""
+        base = 0.1 if self.penalty_scale is None else self.penalty_scale
+        return base / z_curr.size(0) / (len(self.weights_) + 1)
+
+    def _orthogonality_penalty_loss(self, output, data_X, model):
+        if self.orthogonality_penalty == "weights":
+            return self._weight_orthogonality_loss(model)
+        if self.orthogonality_penalty == "participants":
+            return self._participant_orthogonality_loss(output, data_X)
+        return 0
+
+    def _weight_orthogonality_loss(self, model):
+        penalty_scale = self._weight_penalty_scale()
+        w_current = model.weight.view(-1)  # shape: (num_features,)
+        loss = 0
+        for w_prev in self.weights_:
+            w_prev = torch.tensor(w_prev).view(-1).to(w_current.device)  # shape: (num_features,)
+            if self.orthogonality_by_correlation:
+                dot = torch.dot(w_current - w_current.mean(), w_prev - w_prev.mean())
+            else:
+                dot = torch.dot(w_current, w_prev)
+            loss += penalty_scale * torch.pow(dot, 2)
+        return loss
+
+    def _participant_orthogonality_loss(self, output, data_X):
+        z_curr = output.view(-1)  # (batch,)
+        penalty_scale = self._participant_penalty_scale(z_curr)
+        loss = 0
+        for w_prev_np in self.weights_:  # loop over old comps
+            w_prev = torch.as_tensor(
+                w_prev_np,
+                device=z_curr.device,
+                dtype=z_curr.dtype,
+            ).view(-1)  # (n_features,)
+            z_prev = data_X @ w_prev  # (batch,)
+            if self.orthogonality_by_correlation:
+                dot = torch.dot(z_curr - z_curr.mean(), z_prev - z_prev.mean())
+                loss += penalty_scale * dot.pow(2)
+            else:
+                dot = torch.dot(z_curr, z_prev)
+                loss += (penalty_scale / 10) * dot.pow(2)
+        return loss
 
     def save(self, filename):
         with open(filename, "wb") as f:
@@ -335,13 +308,11 @@ class RCA(TransformerMixin, BaseEstimator):
         if not X.ndim == 2:
             raise ValueError(f"Input X must be of shape [num_scans, d]. Got {X.shape}")
         if not labels.ndim == 2 or not labels.shape[1] == 2:
-            raise ValueError(
-                f"Input labels must be of shape [num_scans, 2]. Got {labels.shape}"
-            )
+            raise ValueError(f"Input y must be of shape [num_scans, 2]. Got {labels.shape}")
         if not X.shape[0] == labels.shape[0]:
             raise ValueError(
-                "Input X, labels must have matching first dimensions. "
-                f"Got X.shape={X.shape}, labels.shape={labels.shape}"
+                "Input X, y must have matching first dimensions. "
+                f"Got X.shape={X.shape}, y.shape={labels.shape}"
             )
 
     @staticmethod

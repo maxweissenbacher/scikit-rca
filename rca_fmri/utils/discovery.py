@@ -74,19 +74,13 @@ def all_estimators(type_filter=None):
                 continue
             module = import_module(module_name)
             classes = inspect.getmembers(module, inspect.isclass)
-            classes = [
-                (name, est_cls) for name, est_cls in classes if not name.startswith("_")
-            ]
+            classes = [(name, est_cls) for name, est_cls in classes if not name.startswith("_")]
 
             all_classes.extend(classes)
 
     all_classes = set(all_classes)
 
-    estimators = [
-        c
-        for c in all_classes
-        if (issubclass(c[1], BaseEstimator) and c[0] != "BaseEstimator")
-    ]
+    estimators = [c for c in all_classes if (issubclass(c[1], BaseEstimator) and c[0] != "BaseEstimator")]
     # get rid of abstract base classes
     estimators = [c for c in estimators if not is_abstract(c[1])]
 
@@ -105,9 +99,7 @@ def all_estimators(type_filter=None):
         for name, mixin in filters.items():
             if name in type_filter:
                 type_filter.remove(name)
-                filtered_estimators.extend(
-                    [est for est in estimators if issubclass(est[1], mixin)]
-                )
+                filtered_estimators.extend([est for est in estimators if issubclass(est[1], mixin)])
         estimators = filtered_estimators
         if type_filter:
             raise ValueError(
@@ -198,11 +190,7 @@ def all_functions():
 
             module = import_module(module_name)
             functions = inspect.getmembers(module, _is_checked_function)
-            functions = [
-                (func.__name__, func)
-                for name, func in functions
-                if not name.startswith("_")
-            ]
+            functions = [(func.__name__, func) for name, func in functions if not name.startswith("_")]
             all_functions.extend(functions)
 
     # drop duplicates, sort for reproducibility

@@ -25,12 +25,8 @@ def icc_full(subjects, values, version="ICC1"):
     df = pandas.DataFrame({"subject": subjects, "value": values})
     df.sort_values("subject", inplace=True, kind="mergesort")
     # mergesort is the only stable sort
-    df["rater"] = np.tile(
-        range(0, len(subjects) // len(set(subjects))), len(set(subjects))
-    )
-    iccs = pingouin.intraclass_corr(
-        data=df, targets="subject", raters="rater", ratings="value"
-    )
+    df["rater"] = np.tile(range(0, len(subjects) // len(set(subjects))), len(set(subjects)))
+    iccs = pingouin.intraclass_corr(data=df, targets="subject", raters="rater", ratings="value")
     iccs.set_index("Type", inplace=True)
     return (
         iccs.loc[version]["ICC"],
@@ -85,9 +81,7 @@ def icc11(subjects, values, alpha=0.05, r0=0, return_stats=True):
 def compute_same_diff_from_label(label):
     subjnum = label[:, 0]
     scannum = label[:, 1]
-    same = (subjnum[:, None] == subjnum[None, :]) & (
-        scannum[:, None] != scannum[None, :]
-    )
+    same = (subjnum[:, None] == subjnum[None, :]) & (scannum[:, None] != scannum[None, :])
     diff = subjnum[:, None] != subjnum[None, :]
     return same, diff
 
@@ -100,9 +94,7 @@ def contrastive_loss(embedding, label, eps):
     # Gives matrix with (i,j) = L2 norm of (output[i:] - output[j:])
     dist = torch.cdist(embedding, embedding, p=2)
     loss_same = torch.mean(torch.pow(torch.masked_select(dist, same), 2))
-    loss_diff = torch.mean(
-        torch.pow(torch.clamp(eps - torch.masked_select(dist, diff), 0), 2)
-    )
+    loss_diff = torch.mean(torch.pow(torch.clamp(eps - torch.masked_select(dist, diff), 0), 2))
     return loss_same + loss_diff
 
 

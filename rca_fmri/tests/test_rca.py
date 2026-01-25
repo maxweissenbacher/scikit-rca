@@ -1,11 +1,7 @@
 """Tests for the RCA transformer."""
 import numpy as np
 import pytest
-
 from rca_fmri import RCA
-
-# Authors: scikit-learn-contrib developers
-# License: BSD 3 clause
 
 
 @pytest.fixture
@@ -31,7 +27,6 @@ def test_rca_transformer(data):
     X, labels = data
     trans = RCA(
         n_components=1,
-        n_features=X.shape[1],
         n_epochs=1,
         batch_size=2,
         model_type="linear",
