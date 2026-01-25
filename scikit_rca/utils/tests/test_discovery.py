@@ -3,7 +3,7 @@
 
 import pytest
 
-from rca_fmri.utils.discovery import all_displays, all_estimators, all_functions
+from scikit_rca.utils.discovery import all_displays, all_estimators, all_functions
 
 
 def test_all_estimators():

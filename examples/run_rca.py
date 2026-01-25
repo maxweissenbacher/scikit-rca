@@ -13,7 +13,7 @@ import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from rca_fmri import RCA
+from scikit_rca import RCA
 
 sns.set_theme(style="darkgrid")
 

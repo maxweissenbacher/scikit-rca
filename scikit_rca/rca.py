@@ -10,8 +10,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from rca_fmri.utils.data import PairDataset
-from rca_fmri.utils.metrics import contrastive_loss, icc11, info_nce
+from scikit_rca.utils.data import PairDataset
+from scikit_rca.utils.metrics import contrastive_loss, icc11, info_nce
 
 
 class RCA(TransformerMixin, BaseEstimator):

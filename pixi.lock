@@ -5789,18 +5789,6 @@ packages:
   version: 6.0.3
   sha256: 9f3bfb4965eb874431221a3ff3fdcddc7e74e3b07799e0e84ca4a0f867d449bf
   requires_python: '>=3.8'
-- pypi: ./
-  name: rca-fmri
-  version: 0.0.1.post1.dev0
-  sha256: 09ddc0452d7b8617d3557325965c83ffd9c2e875650a9cf448368630c70a947f
-  requires_dist:
-  - scikit-learn>=1.4.2
-  - torch>=2.5 ; sys_platform != 'darwin' or platform_machine == 'arm64'
-  - click>=8.1
-  - tqdm==4.66.1
-  - spatiotemporal==1.0.1
-  - pingouin==0.5.5
-  requires_python: '>=3.9'
 - conda: https://conda.anaconda.org/conda-forge/linux-64/readline-8.3-h853b02a_0.conda
   sha256: 12ffde5a6f958e285aa22c191ca01bbd3d6e710aa852e00618fa6ddc59149002
   md5: d7d95fc8287ea7bf33e0e7116d2b95ec
@@ -6135,6 +6123,18 @@ packages:
   - pooch>=1.8.0 ; extra == 'tests'
   - conda-lock==3.0.1 ; extra == 'maintenance'
   requires_python: '>=3.11'
+- pypi: ./
+  name: scikit-rca
+  version: 0.0.1.post1.dev0
+  sha256: 371671ff00c6cbf0565d35283f07f82f57d6ae7d24c2ef8e36c52da24e4ff910
+  requires_dist:
+  - scikit-learn>=1.4.2
+  - torch>=2.5 ; sys_platform != 'darwin' or platform_machine == 'arm64'
+  - click>=8.1
+  - tqdm==4.66.1
+  - spatiotemporal==1.0.1
+  - pingouin==0.5.5
+  requires_python: '>=3.9'
 - pypi: https://files.pythonhosted.org/packages/1e/4b/c89c131aa87cad2b77a54eb0fb94d633a842420fa7e919dc2f922037c3d8/scipy-1.17.0-cp311-cp311-macosx_10_14_x86_64.whl
   name: scipy
   version: 1.17.0

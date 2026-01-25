@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from rca_fmri import RCA
+from scikit_rca import RCA
 
 
 @pytest.fixture

@@ -1,19 +1,19 @@
 # Reliability Component Analysis
 
-[![tests](https://github.com/maxweissenbacher/rca_fmri/actions/workflows/python-app.yml/badge.svg)](https://github.com/maxweissenbacher/rca_fmri/actions/workflows/python-app.yml)
+[![tests](https://github.com/maxweissenbacher/scikit-rca/actions/workflows/python-app.yml/badge.svg)](https://github.com/maxweissenbacher/scikit-rca/actions/workflows/python-app.yml)
 
 Implementation of Reliability Component Analysis (RCA) from the paper 
 
 (citation pending).
 
-`rca_fmri` is a [scikit-learn](https://scikit-learn.org) compatible extension. The implementation is based on the [scikit-learn-contrib template](https://github.com/scikit-learn-contrib/project-template).
+`scikit_rca` is a [scikit-learn](https://scikit-learn.org) compatible extension. The implementation is based on the [scikit-learn-contrib template](https://github.com/scikit-learn-contrib/project-template).
 
 ## Installation
 
 The package is available on PyPI and can be installed with:
 
 ```bash
-pip install rca_fmri
+pip install scikit-rca
 ```
 
 ## Usage

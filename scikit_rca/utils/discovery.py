@@ -1,6 +1,6 @@
 """
-The :mod:`rca_fmri.utils.discovery` module includes utilities to discover
-objects (i.e. estimators, displays, functions) from the `rca_fmri` package.
+The :mod:`scikit_rca.utils.discovery` module includes utilities to discover
+objects (i.e. estimators, displays, functions) from the `scikit_rca` package.
 """
 
 # Adapted from scikit-learn
@@ -26,7 +26,7 @@ _MODULE_TO_IGNORE = {"tests"}
 
 
 def all_estimators(type_filter=None):
-    """Get a list of all estimators from `rca_fmri`.
+    """Get a list of all estimators from `scikit_rca`.
 
     This function crawls the module and gets all classes that inherit
     from `BaseEstimator`. Classes that are defined in test-modules are not
@@ -50,7 +50,7 @@ def all_estimators(type_filter=None):
 
     Examples
     --------
-    >>> from rca_fmri.utils.discovery import all_estimators
+    >>> from scikit_rca.utils.discovery import all_estimators
     >>> estimators = all_estimators()
     >>> type(estimators)
     <class 'list'>
@@ -64,11 +64,11 @@ def all_estimators(type_filter=None):
         return True
 
     all_classes = []
-    root = str(Path(__file__).parent.parent)  # rca_fmri package
+    root = str(Path(__file__).parent.parent)  # scikit_rca package
     # Ignore deprecation warnings triggered at import time and from walking
     # packages
     with ignore_warnings(category=FutureWarning):
-        for _, module_name, _ in pkgutil.walk_packages(path=[root], prefix="rca_fmri."):
+        for _, module_name, _ in pkgutil.walk_packages(path=[root], prefix="scikit_rca."):
             module_parts = module_name.split(".")
             if any(part in _MODULE_TO_IGNORE for part in module_parts):
                 continue
@@ -116,7 +116,7 @@ def all_estimators(type_filter=None):
 
 
 def all_displays():
-    """Get a list of all displays from `rca_fmri`.
+    """Get a list of all displays from `scikit_rca`.
 
     Returns
     -------
@@ -126,15 +126,15 @@ def all_displays():
 
     Examples
     --------
-    >>> from rca_fmri.utils.discovery import all_displays
+    >>> from scikit_rca.utils.discovery import all_displays
     >>> displays = all_displays()
     """
     all_classes = []
-    root = str(Path(__file__).parent.parent)  # rca_fmri package
+    root = str(Path(__file__).parent.parent)  # scikit_rca package
     # Ignore deprecation warnings triggered at import time and from walking
     # packages
     with ignore_warnings(category=FutureWarning):
-        for _, module_name, _ in pkgutil.walk_packages(path=[root], prefix="rca_fmri."):
+        for _, module_name, _ in pkgutil.walk_packages(path=[root], prefix="scikit_rca."):
             module_parts = module_name.split(".")
             if any(part in _MODULE_TO_IGNORE for part in module_parts):
                 continue
@@ -158,14 +158,14 @@ def _is_checked_function(item):
         return False
 
     mod = item.__module__
-    if not mod.startswith("rca_fmri.") or mod.endswith("estimator_checks"):
+    if not mod.startswith("scikit_rca.") or mod.endswith("estimator_checks"):
         return False
 
     return True
 
 
 def all_functions():
-    """Get a list of all functions from `rca_fmri`.
+    """Get a list of all functions from `scikit_rca`.
 
     Returns
     -------
@@ -175,15 +175,15 @@ def all_functions():
 
     Examples
     --------
-    >>> from rca_fmri.utils.discovery import all_functions
+    >>> from scikit_rca.utils.discovery import all_functions
     >>> functions = all_functions()
     """
     all_functions = []
-    root = str(Path(__file__).parent.parent)  # rca_fmri package
+    root = str(Path(__file__).parent.parent)  # scikit_rca package
     # Ignore deprecation warnings triggered at import time and from walking
     # packages
     with ignore_warnings(category=FutureWarning):
-        for _, module_name, _ in pkgutil.walk_packages(path=[root], prefix="rca_fmri."):
+        for _, module_name, _ in pkgutil.walk_packages(path=[root], prefix="scikit_rca."):
             module_parts = module_name.split(".")
             if any(part in _MODULE_TO_IGNORE for part in module_parts):
                 continue
