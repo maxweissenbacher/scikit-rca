@@ -36,7 +36,6 @@ def test_all_functions():
         "compute_same_diff_from_label",
         "contrastive_loss",
         "icc11",
-        "icc_full",
         "info_nce",
     }
     assert function_names == expected

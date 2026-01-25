@@ -55,7 +55,7 @@ class RCA(TransformerMixin, BaseEstimator):
         Loss function type.
     verbose : bool, default=False
         Whether to print progress messages during fitting.
-    orthogonality_penalty : {"participants", "weights"}, default="participants"
+    orthogonality_penalty : {"scores", "weights"}, default="scores"
         Orthogonality penalty type.
     orthogonality_by_correlation : bool, default=True
         Use correlation instead of dot product for orthogonality.
@@ -78,7 +78,7 @@ class RCA(TransformerMixin, BaseEstimator):
         loss_type="contrastive",
         random_state=None,
         verbose=False,
-        orthogonality_penalty="participants",
+        orthogonality_penalty="scores",
         orthogonality_by_correlation=True,
         penalty_scale=None,
     ):
@@ -248,16 +248,16 @@ class RCA(TransformerMixin, BaseEstimator):
         """Return the penalty scale for weight orthogonality."""
         return 10 if self.penalty_scale is None else self.penalty_scale
 
-    def _participant_penalty_scale(self, z_curr):
-        """Return the penalty scale for participant orthogonality."""
+    def _score_penalty_scale(self, z_curr):
+        """Return the penalty scale for score orthogonality."""
         base = 0.1 if self.penalty_scale is None else self.penalty_scale
         return base / z_curr.size(0) / (len(self.weights_) + 1)
 
     def _orthogonality_penalty_loss(self, output, data_X, model):
         if self.orthogonality_penalty == "weights":
             return self._weight_orthogonality_loss(model)
-        if self.orthogonality_penalty == "participants":
-            return self._participant_orthogonality_loss(output, data_X)
+        if self.orthogonality_penalty == "scores":
+            return self._score_orthogonality_loss(output, data_X)
         return 0
 
     def _weight_orthogonality_loss(self, model):
@@ -273,9 +273,9 @@ class RCA(TransformerMixin, BaseEstimator):
             loss += penalty_scale * torch.pow(dot, 2)
         return loss
 
-    def _participant_orthogonality_loss(self, output, data_X):
+    def _score_orthogonality_loss(self, output, data_X):
         z_curr = output.view(-1)  # (batch,)
-        penalty_scale = self._participant_penalty_scale(z_curr)
+        penalty_scale = self._score_penalty_scale(z_curr)
         loss = 0
         for w_prev_np in self.weights_:  # loop over old comps
             w_prev = torch.as_tensor(

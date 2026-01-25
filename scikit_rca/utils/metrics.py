@@ -1,38 +1,8 @@
 from collections import Counter
 
 import numpy as np
-import pandas
-import pingouin
 import scipy.stats
 import torch
-
-
-def icc_full(subjects, values, version="ICC1"):
-    """
-    Compute the intraclass correlation coefficient (ICC) for a set of subjects and
-    values.
-    Input:
-        subjects: list of subjects
-        values: list of values
-        version: ICC version, one of "ICC1", "ICC2", "ICC3", "ICC3k"
-    Output:
-        ICC: intraclass correlation
-        CI95%: 95% confidence interval
-        pval: p-value
-    """
-    counts = Counter(subjects)
-    assert len(set(counts.values())) == 1, "Different numbers of subject ratings in ICC"
-    df = pandas.DataFrame({"subject": subjects, "value": values})
-    df.sort_values("subject", inplace=True, kind="mergesort")
-    # mergesort is the only stable sort
-    df["rater"] = np.tile(range(0, len(subjects) // len(set(subjects))), len(set(subjects)))
-    iccs = pingouin.intraclass_corr(data=df, targets="subject", raters="rater", ratings="value")
-    iccs.set_index("Type", inplace=True)
-    return (
-        iccs.loc[version]["ICC"],
-        tuple(iccs.loc[version]["CI95%"]),
-        iccs.loc[version]["pval"],
-    )
 
 
 def icc11(subjects, values, alpha=0.05, r0=0, return_stats=True):

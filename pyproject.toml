@@ -18,7 +18,6 @@ dependencies = [
   "click>=8.1",
   "tqdm==4.66.1",
   "spatiotemporal==1.0.1",
-  "pingouin==0.5.5",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -73,7 +72,6 @@ scikit-learn = ">=1.4.2"
 click = ">=8.1"
 tqdm = "==4.66.1"
 spatiotemporal = "==1.0.1"
-pingouin = "==0.5.5"
 
 # Test
 pytest = "*"
