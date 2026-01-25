@@ -24,7 +24,7 @@ Example usage is demonstrated in `examples/run_rca.py`. To use this example, clo
 python examples/run_rca.py --help
 ```
 
-The `run_rca.py` script expects to finds the data stored in the directory indicated by --data-dir in the form of two files: `features.npy` and `labels.npy`, which are expected to be numpy arrays of shape [num_samples, d] and [num_samples, 2]. The labels array should be structured so that the first dimension indexes samples by group, and the second dimension provides an index of each sample within each group. An example invocation of the script is as follows:
+The `run_rca.py` script expects to finds the data stored in the directory indicated by the `--data-dir` flag in the form of two files: `features.npy` and `labels.npy`, which are expected to be numpy arrays of shape [num_samples, d] and [num_samples, 2]. The labels array should be structured so that the first dimension indexes samples by group, and the second dimension provides an index of each sample within each group. An example invocation of the script is as follows:
 
 ```bash
 python examples/run_rca.py \
