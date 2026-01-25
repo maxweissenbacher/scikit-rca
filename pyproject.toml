@@ -10,6 +10,7 @@ authors = [
 ]
 description = "Reliability component analysis"
 readme = "README.md"
+license = { text = "BSD-3-Clause" }
 requires-python = ">=3.9"
 dependencies = [
   "scikit-learn>=1.4.2",
@@ -38,6 +39,11 @@ Issues = "https://github.com/maxweissenbacher/rca_fmri/issues"
 
 [tool.setuptools_scm]
 version_file = "rca_fmri/_version.py"
+version_scheme = "no-guess-dev"
+local_scheme = "no-local-version"
+
+[tool.setuptools]
+license-files = []
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -86,6 +92,11 @@ sphinx = "*"
 sphinx-design = "*"
 sphinx-gallery = "*"
 sphinx-prompt = "*"
+
+# Release
+build = "*"
+twine = ">=5.1.1"
+pkginfo = ">=1.10.0"
 
 [tool.pixi.feature.test.tasks]
 test = { cmd = "pytest -vsl rca_fmri" }
