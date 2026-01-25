@@ -7,10 +7,12 @@ Example usage of the RCA class.
 """
 
 import pathlib
+
 import click
 import numpy as np
-from matplotlib import pyplot as plt
 import seaborn as sns
+from matplotlib import pyplot as plt
+
 from rca_fmri import RCA
 
 sns.set_theme(style="darkgrid")

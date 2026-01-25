@@ -1,6 +1,7 @@
 """Tests for the RCA transformer."""
 import numpy as np
 import pytest
+
 from rca_fmri import RCA
 
 

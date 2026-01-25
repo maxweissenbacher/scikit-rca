@@ -1,11 +1,11 @@
 import pickle
 
 import numpy as np
+import torch
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
 from sklearn.utils._tags import TargetTags
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_is_fitted, validate_data
-import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
