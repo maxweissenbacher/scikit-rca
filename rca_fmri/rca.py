@@ -282,7 +282,9 @@ class RCA(TransformerMixin, BaseEstimator):
                 w_prev_np,
                 device=z_curr.device,
                 dtype=z_curr.dtype,
-            ).view(-1)  # (n_features,)
+            ).view(
+                -1
+            )  # (n_features,)
             z_prev = data_X @ w_prev  # (batch,)
             if self.orthogonality_by_correlation:
                 dot = torch.dot(z_curr - z_curr.mean(), z_prev - z_prev.mean())
@@ -311,8 +313,7 @@ class RCA(TransformerMixin, BaseEstimator):
             raise ValueError(f"Input y must be of shape [num_scans, 2]. Got {labels.shape}")
         if not X.shape[0] == labels.shape[0]:
             raise ValueError(
-                "Input X, y must have matching first dimensions. "
-                f"Got X.shape={X.shape}, y.shape={labels.shape}"
+                f"Input X, y must have matching first dimensions. Got X.shape={X.shape}, y.shape={labels.shape}"
             )
 
     @staticmethod

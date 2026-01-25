@@ -12,6 +12,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
 from rca_fmri import RCA
+
 sns.set_theme(style="darkgrid")
 
 
@@ -22,20 +23,8 @@ sns.set_theme(style="darkgrid")
     required=True,
     help="Directory containing features.npy and labels.npy.",
 )
-@click.option(
-    "--lr", 
-    type=float,
-    default=5e-3,
-    show_default=True,
-    help="Learning rate."
-)
-@click.option(
-    "--epochs",
-    type=int,
-    default=200,
-    show_default=True,
-    help="Number of epochs."
-)
+@click.option("--lr", type=float, default=5e-3, show_default=True, help="Learning rate.")
+@click.option("--epochs", type=int, default=200, show_default=True, help="Number of epochs.")
 @click.option(
     "--dim",
     "n_components",
@@ -92,9 +81,10 @@ sns.set_theme(style="darkgrid")
 def main(data_dir, lr, epochs, n_components, batch, loss, penalty_scale, weight_decay, out_dir, plots):
     # Load data
     features_path, labels_path = data_dir / "std.npy", data_dir / "labels.npy"
-    assert features_path.exists() and labels_path.exists(); f"Data directory ({data_dir.as_posix()}) must contain"
+    assert features_path.exists() and labels_path.exists()
+    f"Data directory ({data_dir.as_posix()}) must contain"
     X = np.load(features_path).squeeze()
-    X = (X - np.mean(X))/np.std(X)
+    X = (X - np.mean(X)) / np.std(X)
     labels = np.load(labels_path)
     print(f"Loaded X: {X.shape}, labels: {labels.shape}")
 
@@ -147,16 +137,12 @@ def main(data_dir, lr, epochs, n_components, batch, loss, penalty_scale, weight_
         plt.show()
     else:
         print("Plots disabled; reporting scores and final losses.")
-        score_pairs = ", ".join(
-            f"{dim}:{score:.4f}" for dim, score in zip(dims, scores)
-        )
+        score_pairs = ", ".join(f"{dim}:{score:.4f}" for dim, score in zip(dims, scores))
         print(f"Scores (dim: ICC): {score_pairs}")
         losses = rca.losses_
         if losses.size:
             final_losses = losses[:, -1]
-            loss_pairs = ", ".join(
-                f"{idx + 1}:{loss:.6g}" for idx, loss in enumerate(final_losses)
-            )
+            loss_pairs = ", ".join(f"{idx + 1}:{loss:.6g}" for idx, loss in enumerate(final_losses))
             print(f"Final training loss per component: {loss_pairs}")
 
     if out_dir is not None:

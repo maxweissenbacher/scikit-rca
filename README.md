@@ -6,7 +6,7 @@ Implementation of Reliability Component Analysis (RCA) from the paper
 
 (citation pending).
 
-**rca_fmri** is a [scikit-learn](https://scikit-learn.org) compatible extension. This project is based on the [scikit-learn-contrib template](https://github.com/scikit-learn-contrib/project-template).
+`rca_fmri` is a [scikit-learn](https://scikit-learn.org) compatible extension. The implementation is based on the [scikit-learn-contrib template](https://github.com/scikit-learn-contrib/project-template).
 
 ## Installation
 
@@ -18,10 +18,16 @@ pip install rca_fmri
 
 ## Usage
 
-Example usage is demonstrated in `examples/run_rca.py`. After installing, the script can be run from any environment that contains the installed package.
+Example usage is demonstrated in `examples/run_rca.py`. After installing, the script can be run from any environment that contains the installed package. A good starting point is calling
 
 ```bash
-python examples/run_rca.py --data-dir /path/to/my/data --lr 0.005 --epochs 200 --dim 5 --out-dir /path/to/store/model --penalty-scale 0.1 --batch-size 3996 --weight-decay 0.001
+python examples/run_rca.py --help
+```
+
+The following shows some example usage of the script:
+
+```bash
+python examples/run_rca.py --data-dir /path/to/my/data --lr 0.005 --epochs 200 --dim 5 --out-dir /path/to/store/model --penalty-scale 0.1 --batch-size 4000 --weight-decay 0.001
 ```
 
 ## Authors
