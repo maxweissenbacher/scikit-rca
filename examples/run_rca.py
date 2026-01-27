@@ -100,6 +100,7 @@ def main(data_dir, lr, epochs, n_components, batch, loss, penalty_scale, weight_
         penalty_scale=penalty_scale,
         weight_decay=weight_decay,
         loss_type=loss,
+        verbose=True,
     )
     print(f"Fitting RCA with n_components={n_components}")
     rca.fit(X, labels)

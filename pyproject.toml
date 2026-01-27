@@ -16,8 +16,9 @@ dependencies = [
   "scikit-learn>=1.4.2",
   "torch>=2.5; platform_system != \"Darwin\" or platform_machine == \"arm64\"",
   "click>=8.1",
-  "tqdm==4.66.1",
-  "spatiotemporal==1.0.1",
+  "seaborn>=0.12",
+  "tqdm>=4.64.1",
+  "spatiotemporal>=1.0.1",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -70,8 +71,9 @@ numpy = ">=2.0"
 scipy = "*"
 scikit-learn = ">=1.4.2"
 click = ">=8.1"
-tqdm = "==4.66.1"
-spatiotemporal = "==1.0.1"
+seaborn = ">=0.12"
+tqdm = ">=4.64.1"
+spatiotemporal = ">=1.0.1"
 
 # Test
 pytest = "*"

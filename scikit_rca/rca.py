@@ -122,13 +122,15 @@ class RCA(TransformerMixin, BaseEstimator):
         self._check_dimensions(X, labels)
         X, labels = self._convert_to_torch(X, labels)
         for k in range(0, self.n_components):
-            if self.verbose:
-                print(f"Fitting component {k+1}")
             if self.model_type == "linear":
-                weights, losses = self._fit_component(X, labels)
+                weights, losses = self._fit_component(
+                    X, labels, component_index=k + 1, total_components=self.n_components
+                )
             elif self.model_type == "nonlinear" or self.model_type == "linear_with_multicomponent":
                 if k == 0:
-                    weights, losses = self._fit_component(X, labels)
+                    weights, losses = self._fit_component(
+                        X, labels, component_index=k + 1, total_components=self.n_components
+                    )
                 else:
                     break
             self.losses_.append(losses)
@@ -180,7 +182,7 @@ class RCA(TransformerMixin, BaseEstimator):
                             f"{i} and {j}: {np.abs(self.weights_[i] @ self.weights_[j].T)}"
                         )
 
-    def _fit_component(self, X, labels):
+    def _fit_component(self, X, labels, component_index=None, total_components=None):
         # Create data loader for training
         dataset = PairDataset(X, labels, device=self.device)
         generator = None
@@ -209,7 +211,7 @@ class RCA(TransformerMixin, BaseEstimator):
         losses = []
 
         # Training loop
-        pbar = tqdm(range(self.n_epochs))
+        pbar = tqdm(range(self.n_epochs), desc="", leave=False, disable=not self.verbose)
         for _ in pbar:
             avg_loss = []  # average loss across batches
             avg_gn = []  # average gradient norm across batches
@@ -229,12 +231,17 @@ class RCA(TransformerMixin, BaseEstimator):
                 avg_loss.append(loss.detach().item())
                 avg_gn.append(gn.detach().item())
 
+            if component_index is not None and total_components is not None:
+                prefix = f"{component_index}/{total_components} | "
+            else:
+                prefix = ""
             description = (
-                f"Loss={np.array(avg_loss).mean():.5f} | "
+                f"{prefix}Loss={np.array(avg_loss).mean():.5f} | "
                 f"grad_norm={np.array(avg_gn).mean():.2f} | "
                 f"lr={optimizer.param_groups[0]['lr']:.1e}"
             )
-            pbar.set_description(description)
+            if self.verbose:
+                pbar.set_description(description)
 
             # Logging
             losses.append(np.array(avg_loss).mean())
