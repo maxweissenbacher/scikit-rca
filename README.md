@@ -4,7 +4,7 @@
 
 Implementation of Reliability Component Analysis (RCA) from the paper
 
-(citation pending).
+https://www.biorxiv.org/content/10.64898/2026.01.25.701594v1
 
 `scikit_rca` is a [scikit-learn](https://scikit-learn.org) compatible extension. The implementation is based on the [scikit-learn-contrib template](https://github.com/scikit-learn-contrib/project-template).
 
