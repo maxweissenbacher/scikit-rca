@@ -6,6 +6,9 @@ Implementation of Reliability Component Analysis (RCA) from the paper
 
 https://www.biorxiv.org/content/10.64898/2026.01.25.701594v1
 
+Companion figures/code for the paper:
+https://github.com/mwshinn/figures_for_rca_paper
+
 `scikit_rca` is a [scikit-learn](https://scikit-learn.org) compatible extension. The implementation is based on the [scikit-learn-contrib template](https://github.com/scikit-learn-contrib/project-template).
 
 ## Installation
@@ -24,13 +27,15 @@ Example usage is demonstrated in `examples/run_rca.py`. To use this example, clo
 python examples/run_rca.py --help
 ```
 
+A synthetic example dataset (connectivity-style features with repeated labels) is provided in `examples/data`.
+
 The `run_rca.py` script expects to finds the data stored in the directory indicated by the `--data-dir` flag in the form of two files: `features.npy` and `labels.npy`, which are expected to be numpy arrays of shape [num_samples, d] and [num_samples, 2]. The labels array should be structured so that the first dimension indexes samples by group, and the second dimension provides an index of each sample within each group. An example invocation of the script is as follows:
 
 ```bash
 python examples/run_rca.py \
-    --data-dir /path/to/my/data \
+    --data-dir examples/data \
     --lr 0.005 \
-    --epochs 200 \
+    --epochs 5000 \
     --dim 5 \
     --penalty-scale 0.1 \
     --batch-size 4000 \
